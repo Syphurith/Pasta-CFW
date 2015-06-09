@@ -2,6 +2,9 @@
 
 #include "common.h"
 
+//To reuse the FIL object in some heavy SD IO functions.
+extern FIL fsFile;
+
 bool FSInit();
 void FSDeInit();
 

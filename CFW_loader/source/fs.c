@@ -4,7 +4,7 @@
 
 //FileSystem Object for SD. And we only have one file present at the same time.
 static FATFS fsFS;
-static FIL fsFile;
+FIL fsFile;
 
 // @breif  Init, and mount SDCard FileSystem.
 // @retval true, If mounted OK.
