@@ -1,6 +1,7 @@
 #pragma once
-
 #include "common.h"
+
+#include "fatfs/ff.h"
 
 //To reuse the FIL object in some heavy SD IO functions.
 extern FIL fsFile;

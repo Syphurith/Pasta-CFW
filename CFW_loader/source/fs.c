@@ -1,7 +1,5 @@
 #include "fs.h"
 
-#include "fatfs/ff.h"
-
 //FileSystem Object for SD. And we only have one file present at the same time.
 static FATFS fsFS;
 FIL fsFile;

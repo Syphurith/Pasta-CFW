@@ -147,28 +147,28 @@ void CFW_ARM9Dumper(void) {
 	u32 pad_state = HidWaitForInput();
 	if (pad_state & BUTTON_B) DrawDebug(1,"Skipping...");
 	else {
-		u32 bytesWritten = 0;
-		u32 currentWritten = 0;
-		u32 result = 0;
+		UINT bytesWritten = 0, currentWritten = 0;
+		//u32 result = 0;
 		u32 currentSize = 0;
 		void *dumpAddr = (void*)0x08000000;
 		u32 fullSize = 0x00100000;
 		const u32 chunkSize = 0x10000;
 
 		if (FSFileCreate("/3ds/PastaCFW/RAM.bin", true)) {
+            f_lseek(&fsFile, 0);
 			while (currentWritten < fullSize) {
 				currentSize = fullSize - currentWritten < chunkSize ? fullSize - currentWritten : chunkSize;
-				bytesWritten = FSFileWrite((u8 *)dumpAddr + currentWritten, currentSize, currentWritten);
+                f_write(&fsFile, (u8 *)dumpAddr + currentWritten, currentSize, &bytesWritten);f_sync(&fsFile);
 				if (bytesWritten != currentSize) break;
 				currentWritten += bytesWritten;
 				DrawDebug(0,"Dumping:                         %07d/%d", currentWritten, fullSize);
 			}
 			FSFileClose();
-			result = (fullSize == currentWritten);
+			//result = (fullSize == currentWritten);
 		}
 		DrawDebug(1,"");
 		DrawDebug(1,"");
-		DrawDebug(1,"Dump %s! Press any key to boot CFW.", result ? "finished" : "failed");
+		DrawDebug(1,"Dump %s! Press any key to boot CFW.", (fullSize == currentWritten) ? "finished" : "failed");
 		HidWaitForInput();
 	}
 }
