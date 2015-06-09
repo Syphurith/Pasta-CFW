@@ -13,6 +13,8 @@ char* cfw_FWString;
 char cfw_FWValue;
 //if true, dump the ARM9 ram
 bool cfw_arm9dump;
+//if true start to use customizable patches.
+bool cfw_custompatches;
 
 //[Unused]
 //void ioDelay(u32);
@@ -72,6 +74,7 @@ void CFW_getSystemVersion(void) {
 	}
 	//Check if to use the ARM9 Dumper
 	if (settings[2] == '1') cfw_arm9dump = true;
+    if (settings[3] & 0x1) cfw_custompatches = true;
 }
 
 // @breif  Patch the offsets to pass the signs.
@@ -287,6 +290,7 @@ int main(void) {
 	DrawDebug(1,"Your system is %s", cfw_FWString);
 	DrawDebug(1,"");
 	CFW_SecondStage();
+    if (cfw_custompatches) CFW_CustomPatch();
 	if (cfw_arm9dump == true) CFW_ARM9Dumper();
 
 	// return control to FIRM ARM9 code (performs firmlaunch)
