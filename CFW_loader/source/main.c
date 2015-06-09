@@ -135,6 +135,103 @@ void CFW_SecondStage(void) {
 	DrawDebug(1,"Apply patch for type %c...                  Done!", cfw_FWValue);
 }
 
+// @breif  Load patches from file and patch them if enabled after compared or overrided.
+// @note   Patch source: _patch.bin. Behaviour only when enabled in system.txt.
+//         >>Read the patches one after one.
+//           >>Enabled?
+//             >>Loading patched code and overrided code
+//             >>Y Overrided?>>Y Just patch it, yep.
+//                           >>N patch the memory when current matches overrided.
+//         This feature may easily make troubles so please take care and use tools.
+void CFW_CustomPatch(void) {
+    u8 fileVersion = 0, patchesCount = 0, patchFlag = 0, patchSize = 0;
+    u32 patchAddr = 0;
+    u8 i = 0, j = 0, failedPatches = 0; // i for patches, j for checking
+    u8 patchbuf[256] = {0,};
+    UINT expectedBytes = 0;
+    //This file structure: (version 0)
+    //Head: u8 version; u8 count;
+    //Body contains records count as patchesCount.
+    //u32 addr; u8 flag; u8 size; u8 expected[]; u8 patch[];
+    //where flag: Bit0 - enabled? Bit1 - just override?
+    if (f_open(&fsFile, "/3ds/PastaCFW/_patch.bin", FA_READ | FA_OPEN_EXISTING) != FR_OK) {
+        f_close(&fsFile);
+        DrawDebug(1,"CP.ERR:_patch.bin not found");
+        return;
+    }
+    f_lseek(&fsFile, 0);
+    f_read(&fsFile, patchbuf, 2, &expectedBytes);
+    if (expectedBytes!=2) {
+        f_close(&fsFile);
+        DrawDebug(1,"CP.ERR:binary corrupted");
+        return;
+    }
+    fileVersion = patchbuf[0]; patchesCount = patchbuf[1];
+    if (fileVersion != 0) {
+        f_close(&fsFile);
+        DrawDebug(1,"CP.ERR:version %u unsupported", fileVersion);
+        return;
+    }
+    for (i = 0; i < patchesCount; i ++) {
+        f_read(&fsFile, &patchAddr, 4, &expectedBytes);
+        if (expectedBytes!=4) {
+            f_close(&fsFile);
+            DrawDebug(1,"CP.ERR:binary corrupted");
+            return;
+        }
+        if (!patchAddr) {
+            f_close(&fsFile);
+            DrawDebug(1,"CP.ERR:invalid address 0x%X", patchAddr);
+            return;
+        }
+        f_read(&fsFile, &patchFlag, 1, &expectedBytes);
+        if (expectedBytes!=1) {
+            f_close(&fsFile);
+            DrawDebug(1,"CP.ERR:binary corrupted");
+            return;
+        }
+        f_read(&fsFile, &patchSize, 1, &expectedBytes);
+        if (expectedBytes!=1) {
+            f_close(&fsFile);
+            DrawDebug(1,"CP.ERR:binary corrupted");
+            return;
+        }
+        if (!patchSize) {
+            f_close(&fsFile);
+            DrawDebug(1,"CP.ERR:invalid size 0x%X", patchSize);
+            return;
+        }
+        f_read(&fsFile, &patchbuf, patchSize, &expectedBytes);
+        if (expectedBytes!=patchSize) {
+            f_close(&fsFile);
+            DrawDebug(1,"CP.ERR:binary corrupted");
+            return;
+        }
+        if (!(patchFlag & 0x2)) {
+            // doesn't override, so start testing.
+            for (j = 0; j < patchSize; j++) {
+                if (*(u8*)(patchAddr + j) != patchbuf[j]) {
+                    DrawDebug(1,"CP.INF:chunk mismatch %u", i);
+                    patchFlag = 0; failedPatches++;
+                    break;
+                }
+            }
+        }
+        f_read(&fsFile, &patchbuf, patchSize, &expectedBytes);
+        if (expectedBytes!=patchSize) {
+            f_close(&fsFile);
+            DrawDebug(1,"CP.ERR:binary corrupted");
+            return;
+        }
+        if (patchFlag & 0x1) {
+            // If enabled and matches or overrided.
+            memcpy((u32*)patchAddr, patchbuf, patchSize);
+        }
+    }
+    f_close(&fsFile);
+    DrawDebug(1,"CP.INF:done, failed %u", failedPatches);
+}
+
 // @breif  Dump ARM9 Ram to file.
 void CFW_ARM9Dumper(void) {
 	DrawDebug(1,"");
